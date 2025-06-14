@@ -951,64 +951,104 @@
         });
       }
 
-      // Fungsi untuk memuat transaksi menggunakan metode iframe
+      // Fungsi untuk memuat transaksi menggunakan JSONP
       function loadTransactions() {
-        return new Promise((resolve) => {
-          const iframe = document.createElement("iframe");
-          iframe.style.display = "none";
-          iframe.src = SCRIPT_URL;
-          document.body.appendChild(iframe);
+        return new Promise((resolve, reject) => {
+          const callbackName =
+            "jsonp_callback_" + Math.round(100000 * Math.random());
+          const timestamp = new Date().getTime(); // Untuk menghindari cache
+          const url = `${SCRIPT_URL}?action=get&cache=${timestamp}&callback=${callbackName}`;
 
-          window.addEventListener("message", (event) => {
-            if (event.data && event.data.data) {
-              document.body.removeChild(iframe);
-              processTransactions(event.data.data);
-              resolve(event.data.data);
-            }
-          });
+          // Buat elemen script
+          const script = document.createElement("script");
+          script.src = url;
+          script.async = true;
+
+          // Tentukan fungsi callback
+          window[callbackName] = function (data) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+
+            // Update ringkasan keuangan
+            updateFinancialSummary(data);
+
+            // Update chart pengeluaran
+            updateExpenseChart(data);
+
+            // Tampilkan transaksi
+            displayTransactions(data);
+
+            resolve(data);
+          };
+
+          // Tangani error
+          script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+
+            document.getElementById("transactionTableBody").innerHTML = `
+                        <tr>
+                            <td colspan="5" class="loading">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Gagal memuat data. Silakan coba lagi.</p>
+                            </td>
+                        </tr>
+                    `;
+
+            showNotification("Gagal memuat data transaksi", "error");
+            reject(new Error("JSONP request failed"));
+          };
+
+          // Tambahkan script ke dokumen
+          document.body.appendChild(script);
         });
       }
 
-      // Fungsi untuk memproses transaksi yang diterima
-      function processTransactions(data) {
-        // Update ringkasan keuangan
-        updateFinancialSummary(data);
-
-        // Update chart pengeluaran
-        updateExpenseChart(data);
-
-        // Tampilkan transaksi
-        displayTransactions(data);
-      }
-
-      // Fungsi untuk mengirim data transaksi
-      async function postTransactionDirectly(data) {
-        try {
-          const formData = new URLSearchParams();
-          formData.append("kategori", data.kategori);
-          formData.append("deskripsi", data.deskripsi);
-          formData.append("jumlah", data.jumlah);
-          formData.append("tipe", data.tipe);
-
-          // Kirim menggunakan form submission
-          const response = await fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            body: formData,
+      // Fungsi untuk menyimpan transaksi menggunakan JSONP
+      function saveTransaction(data) {
+        return new Promise((resolve, reject) => {
+          const callbackName =
+            "save_callback_" + Math.round(100000 * Math.random());
+          const params = new URLSearchParams({
+            action: "save", // Pastikan ini ada
+            kategori: data.kategori,
+            deskripsi: data.deskripsi,
+            jumlah: data.jumlah,
+            tipe: data.tipe,
+            callback: callbackName,
           });
 
-          // Karena mode 'no-cors', kita tidak bisa membaca response langsung
-          // Jadi kita beri delay lalu refresh data
-          setTimeout(() => {
-            loadTransactions();
-            showNotification("Transaksi berhasil disimpan!", "success");
-          }, 1500);
+          const url = `${SCRIPT_URL}?${params.toString()}`;
 
-          return { status: "success" };
-        } catch (error) {
-          showNotification("Gagal menyimpan transaksi", "error");
-          throw error;
-        }
+          // Buat elemen script
+          const script = document.createElement("script");
+          script.src = url;
+          script.async = true;
+
+          // Tentukan fungsi callback
+          window[callbackName] = function (response) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+
+            if (response.status === "success") {
+              resolve(response);
+            } else {
+              reject(
+                new Error(response.message || "Gagal menyimpan transaksi")
+              );
+            }
+          };
+
+          // Tangani error
+          script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error("Gagal terhubung ke server"));
+          };
+
+          // Tambahkan script ke dokumen
+          document.body.appendChild(script);
+        });
       }
 
       // Submit form transaksi
@@ -1035,15 +1075,22 @@
 
           try {
             // Kirim transaksi
-            await postTransactionDirectly(transaction);
+            await saveTransaction(transaction);
 
             // Reset form
             document.getElementById("transactionForm").reset();
+
+            // Tampilkan notifikasi sukses
+            showNotification("Transaksi berhasil disimpan!", "success");
+
+            // Muat ulang data transaksi
+            await loadTransactions();
 
             // Kembali ke dashboard
             showTab("dashboard");
           } catch (error) {
             console.error("Error:", error);
+            showNotification(`Gagal menyimpan: ${error.message}`, "error");
           } finally {
             // Kembalikan tombol ke keadaan semula
             submitBtn.innerHTML = originalBtnText;
