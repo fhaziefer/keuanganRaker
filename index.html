@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Keuangan Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim</title>
+    <title>
+      Keuangan Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim
+    </title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -197,7 +199,7 @@
         display: flex;
         align-items: center;
       }
-      
+
       .sub-section-title {
         font-size: 1.2rem;
         margin: 25px 0 15px;
@@ -248,6 +250,21 @@
         cursor: pointer;
         transition: var(--transition);
         width: 100%;
+      }
+
+      .btn-sm {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        width: auto;
+      }
+
+      .btn-edit {
+        background: var(--success);
+        margin-right: 5px;
+      }
+
+      .btn-delete {
+        background: var(--danger);
       }
 
       .btn:hover {
@@ -477,7 +494,7 @@
         margin-right: 10px;
         font-size: 1.2rem;
       }
-      
+
       .summary-card {
         display: flex;
         justify-content: space-between;
@@ -488,32 +505,68 @@
         box-shadow: var(--card-shadow);
         margin-bottom: 20px;
       }
-      
+
       .summary-card .title {
         font-weight: 600;
         font-size: 1.1rem;
         color: var(--gray);
       }
-      
+
       .summary-card .value {
         font-weight: 700;
         font-size: 1.4rem;
       }
-      
+
       .income-summary .value {
         color: var(--success);
       }
-      
+
       .expense-summary .value {
         color: var(--danger);
       }
+
+      /* Modal untuk Edit */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 25px;
+        border: 1px solid #888;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover {
+        color: #000;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
       <header>
         <h1>
-          Pencatatan Keuangan Panitia
+          <i class="fas fa-file-invoice-dollar"></i> Pencatatan Keuangan Panitia
         </h1>
         <p>Rakerwil dan Pengukuhan PW MDS Rijalul Ansor jatim</p>
       </header>
@@ -646,11 +699,12 @@
                 <th>Deskripsi</th>
                 <th>Jumlah</th>
                 <th>Tipe</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="transactionTableBody">
               <tr>
-                <td colspan="5" class="loading">
+                <td colspan="6" class="loading">
                   <i class="fas fa-spinner fa-spin"></i>
                   <p>Memuat data transaksi...</p>
                 </td>
@@ -659,17 +713,17 @@
           </table>
         </div>
       </div>
-      
+
       <div class="transactions" id="detailTab" style="display: none">
         <h2 class="section-title">
           <i class="fas fa-file-alt"></i> Detail Pemasukan & Pengeluaran
         </h2>
-        
+
         <div class="summary-card income-summary">
           <div class="title">Total Pemasukan</div>
           <div class="value" id="detail-income-total">Rp 0</div>
         </div>
-        
+
         <div class="table-container">
           <h3 class="sub-section-title">
             <i class="fas fa-arrow-down"></i> Daftar Pemasukan
@@ -681,11 +735,12 @@
                 <th>Kategori</th>
                 <th>Deskripsi</th>
                 <th>Jumlah</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="incomeTableBody">
               <tr>
-                <td colspan="4" class="loading">
+                <td colspan="5" class="loading">
                   <i class="fas fa-spinner fa-spin"></i>
                   <p>Memuat data pemasukan...</p>
                 </td>
@@ -693,12 +748,12 @@
             </tbody>
           </table>
         </div>
-        
+
         <div class="summary-card expense-summary">
           <div class="title">Total Pengeluaran</div>
           <div class="value" id="detail-expense-total">Rp 0</div>
         </div>
-        
+
         <div class="table-container">
           <h3 class="sub-section-title">
             <i class="fas fa-arrow-up"></i> Daftar Pengeluaran
@@ -710,17 +765,72 @@
                 <th>Kategori</th>
                 <th>Deskripsi</th>
                 <th>Jumlah</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="expenseTableBody">
               <tr>
-                <td colspan="4" class="loading">
+                <td colspan="5" class="loading">
                   <i class="fas fa-spinner fa-spin"></i>
                   <p>Memuat data pengeluaran...</p>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Modal untuk Edit Transaksi -->
+      <div id="editModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2 class="section-title">
+            <i class="fas fa-edit"></i> Edit Transaksi
+          </h2>
+          <form id="editTransactionForm">
+            <input type="hidden" id="edit-id" />
+            <div class="form-group">
+              <label for="edit-tipe">Tipe Transaksi</label>
+              <select class="form-control" id="edit-tipe" required>
+                <option value="Pengeluaran">Pengeluaran</option>
+                <option value="Pemasukan">Pemasukan</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-kategori">Kategori</label>
+              <select class="form-control" id="edit-kategori" required>
+                <!-- Kategori akan diisi berdasarkan tipe transaksi -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-deskripsi">Deskripsi</label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit-deskripsi"
+                placeholder="Masukkan deskripsi transaksi"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-jumlah">Jumlah (Rp)</label>
+              <input
+                type="number"
+                class="form-control"
+                id="edit-jumlah"
+                placeholder="Masukkan jumlah"
+                min="0"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn">
+              <i class="fas fa-save"></i> Simpan Perubahan
+            </button>
+          </form>
         </div>
       </div>
 
@@ -928,11 +1038,11 @@
         document.getElementById("total-balance").textContent = formatCurrency(
           totalIncome - totalExpense
         );
-        
+
         // Update detail summary
-        document.getElementById("detail-income-total").textContent = 
+        document.getElementById("detail-income-total").textContent =
           formatCurrency(totalIncome);
-        document.getElementById("detail-expense-total").textContent = 
+        document.getElementById("detail-expense-total").textContent =
           formatCurrency(totalExpense);
 
         // Update comparison chart
@@ -975,7 +1085,7 @@
         if (transactions.length === 0) {
           tableBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="loading">
+                        <td colspan="6" class="loading">
                             <i class="fas fa-inbox"></i>
                             <p>Belum ada transaksi</p>
                         </td>
@@ -1006,31 +1116,45 @@
                         <td>${transaction.Deskripsi}</td>
                         <td>${formatCurrency(amount)}</td>
                         <td>${transaction.Tipe}</td>
+                        <td>
+                          <button class="btn btn-sm btn-edit" data-id="${
+                            transaction.rowId
+                          }" data-tipe="${transaction.Tipe}" data-kategori="${
+            transaction.Kategori
+          }" data-deskripsi="${transaction.Deskripsi}" data-jumlah="${amount}">
+                            <i class="fas fa-edit"></i> Edit
+                          </button>
+                          <button class="btn btn-sm btn-delete" data-id="${
+                            transaction.rowId
+                          }">
+                            <i class="fas fa-trash"></i> Hapus
+                          </button>
+                        </td>
                     </tr>
                 `;
         });
 
         tableBody.innerHTML = tableHTML;
       }
-      
+
       // Fungsi untuk menampilkan detail pemasukan dan pengeluaran
       function displayIncomeExpenseDetails(transactions) {
         // Filter transaksi
         const incomeTransactions = transactions.filter(
-          t => t.Tipe === "Pemasukan"
+          (t) => t.Tipe === "Pemasukan"
         );
-        
+
         const expenseTransactions = transactions.filter(
-          t => t.Tipe === "Pengeluaran"
+          (t) => t.Tipe === "Pengeluaran"
         );
-        
+
         // Tampilkan pemasukan
         const incomeTableBody = document.getElementById("incomeTableBody");
-        
+
         if (incomeTransactions.length === 0) {
           incomeTableBody.innerHTML = `
             <tr>
-              <td colspan="4" class="loading">
+              <td colspan="5" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>Belum ada transaksi pemasukan</p>
               </td>
@@ -1038,33 +1162,53 @@
           `;
         } else {
           let incomeHTML = "";
-          
-          incomeTransactions.sort(
-            (a, b) => new Date(b.Timestamp) - new Date(a.Timestamp)
-          ).forEach(transaction => {
-            const categoryClass = getCategoryClass(transaction.Kategori);
-            const amount = parseFloat(transaction.Jumlah);
-            
-            incomeHTML += `
+
+          incomeTransactions
+            .sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp))
+            .forEach((transaction) => {
+              const categoryClass = getCategoryClass(transaction.Kategori);
+              const amount = parseFloat(transaction.Jumlah);
+
+              incomeHTML += `
               <tr>
                 <td>${formatDate(transaction.Timestamp)}</td>
-                <td><span class="category-badge ${categoryClass}">${transaction.Kategori}</span></td>
+                <td><span class="category-badge ${categoryClass}">${
+                transaction.Kategori
+              }</span></td>
                 <td>${transaction.Deskripsi}</td>
-                <td style="color: #4cc9f0; font-weight: 500;">${formatCurrency(amount)}</td>
+                <td style="color: #4cc9f0; font-weight: 500;">${formatCurrency(
+                  amount
+                )}</td>
+                <td>
+                  <button class="btn btn-sm btn-edit" data-id="${
+                    transaction.rowId
+                  }" data-tipe="${transaction.Tipe}" data-kategori="${
+                transaction.Kategori
+              }" data-deskripsi="${
+                transaction.Deskripsi
+              }" data-jumlah="${amount}">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button class="btn btn-sm btn-delete" data-id="${
+                    transaction.rowId
+                  }">
+                    <i class="fas fa-trash"></i> Hapus
+                  </button>
+                </td>
               </tr>
             `;
-          });
-          
+            });
+
           incomeTableBody.innerHTML = incomeHTML;
         }
-        
+
         // Tampilkan pengeluaran
         const expenseTableBody = document.getElementById("expenseTableBody");
-        
+
         if (expenseTransactions.length === 0) {
           expenseTableBody.innerHTML = `
             <tr>
-              <td colspan="4" class="loading">
+              <td colspan="5" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>Belum ada transaksi pengeluaran</p>
               </td>
@@ -1072,23 +1216,43 @@
           `;
         } else {
           let expenseHTML = "";
-          
-          expenseTransactions.sort(
-            (a, b) => new Date(b.Timestamp) - new Date(a.Timestamp)
-          ).forEach(transaction => {
-            const categoryClass = getCategoryClass(transaction.Kategori);
-            const amount = parseFloat(transaction.Jumlah);
-            
-            expenseHTML += `
+
+          expenseTransactions
+            .sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp))
+            .forEach((transaction) => {
+              const categoryClass = getCategoryClass(transaction.Kategori);
+              const amount = parseFloat(transaction.Jumlah);
+
+              expenseHTML += `
               <tr>
                 <td>${formatDate(transaction.Timestamp)}</td>
-                <td><span class="category-badge ${categoryClass}">${transaction.Kategori}</span></td>
+                <td><span class="category-badge ${categoryClass}">${
+                transaction.Kategori
+              }</span></td>
                 <td>${transaction.Deskripsi}</td>
-                <td style="color: #f72585; font-weight: 500;">${formatCurrency(amount)}</td>
+                <td style="color: #f72585; font-weight: 500;">${formatCurrency(
+                  amount
+                )}</td>
+                <td>
+                  <button class="btn btn-sm btn-edit" data-id="${
+                    transaction.rowId
+                  }" data-tipe="${transaction.Tipe}" data-kategori="${
+                transaction.Kategori
+              }" data-deskripsi="${
+                transaction.Deskripsi
+              }" data-jumlah="${amount}">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button class="btn btn-sm btn-delete" data-id="${
+                    transaction.rowId
+                  }">
+                    <i class="fas fa-trash"></i> Hapus
+                  </button>
+                </td>
               </tr>
             `;
-          });
-          
+            });
+
           expenseTableBody.innerHTML = expenseHTML;
         }
       }
@@ -1097,6 +1261,28 @@
       function updateCategoryOptions() {
         const typeSelect = document.getElementById("tipe");
         const categorySelect = document.getElementById("kategori");
+
+        // Kosongkan opsi saat ini
+        categorySelect.innerHTML = "";
+
+        // Tambahkan opsi berdasarkan tipe transaksi
+        const categories =
+          typeSelect.value === "Pemasukan"
+            ? incomeCategories
+            : expenseCategories;
+
+        categories.forEach((category) => {
+          const option = document.createElement("option");
+          option.value = category;
+          option.textContent = category;
+          categorySelect.appendChild(option);
+        });
+      }
+
+      // Fungsi untuk mengupdate kategori pada form edit
+      function updateEditCategoryOptions() {
+        const typeSelect = document.getElementById("edit-tipe");
+        const categorySelect = document.getElementById("edit-kategori");
 
         // Kosongkan opsi saat ini
         categorySelect.innerHTML = "";
@@ -1141,7 +1327,7 @@
 
             // Tampilkan transaksi
             displayTransactions(data);
-            
+
             // Tampilkan detail pemasukan dan pengeluaran
             displayIncomeExpenseDetails(data);
 
@@ -1155,25 +1341,25 @@
 
             document.getElementById("transactionTableBody").innerHTML = `
                         <tr>
+                            <td colspan="6" class="loading">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Gagal memuat data. Silakan coba lagi.</p>
+                            </td>
+                        </tr>
+                    `;
+
+            document.getElementById("incomeTableBody").innerHTML = `
+                        <tr>
                             <td colspan="5" class="loading">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <p>Gagal memuat data. Silakan coba lagi.</p>
                             </td>
                         </tr>
                     `;
-                    
-            document.getElementById("incomeTableBody").innerHTML = `
-                        <tr>
-                            <td colspan="4" class="loading">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <p>Gagal memuat data. Silakan coba lagi.</p>
-                            </td>
-                        </tr>
-                    `;
-                    
+
             document.getElementById("expenseTableBody").innerHTML = `
                         <tr>
-                            <td colspan="4" class="loading">
+                            <td colspan="5" class="loading">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <p>Gagal memuat data. Silakan coba lagi.</p>
                             </td>
@@ -1220,6 +1406,98 @@
             } else {
               reject(
                 new Error(response.message || "Gagal menyimpan transaksi")
+              );
+            }
+          };
+
+          // Tangani error
+          script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error("Gagal terhubung ke server"));
+          };
+
+          // Tambahkan script ke dokumen
+          document.body.appendChild(script);
+        });
+      }
+
+      // Fungsi untuk mengupdate transaksi menggunakan JSONP
+      function updateTransaction(data) {
+        return new Promise((resolve, reject) => {
+          const callbackName =
+            "update_callback_" + Math.round(100000 * Math.random());
+          const params = new URLSearchParams({
+            action: "update",
+            rowId: data.id,
+            kategori: data.kategori,
+            deskripsi: data.deskripsi,
+            jumlah: data.jumlah,
+            tipe: data.tipe,
+            callback: callbackName,
+          });
+
+          const url = `${SCRIPT_URL}?${params.toString()}`;
+
+          // Buat elemen script
+          const script = document.createElement("script");
+          script.src = url;
+          script.async = true;
+
+          // Tentukan fungsi callback
+          window[callbackName] = function (response) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+
+            if (response.status === "success") {
+              resolve(response);
+            } else {
+              reject(
+                new Error(response.message || "Gagal memperbarui transaksi")
+              );
+            }
+          };
+
+          // Tangani error
+          script.onerror = () => {
+            delete window[callbackName];
+            document.body.removeChild(script);
+            reject(new Error("Gagal terhubung ke server"));
+          };
+
+          // Tambahkan script ke dokumen
+          document.body.appendChild(script);
+        });
+      }
+
+      // Fungsi untuk menghapus transaksi menggunakan JSONP
+      function deleteTransaction(id) {
+        return new Promise((resolve, reject) => {
+          const callbackName =
+            "delete_callback_" + Math.round(100000 * Math.random());
+          const params = new URLSearchParams({
+            action: "delete",
+            rowId: id,
+            callback: callbackName,
+          });
+
+          const url = `${SCRIPT_URL}?${params.toString()}`;
+
+          // Buat elemen script
+          const script = document.createElement("script");
+          script.src = url;
+          script.async = true;
+
+          // Tentukan fungsi callback
+          window[callbackName] = function (response) {
+            delete window[callbackName];
+            document.body.removeChild(script);
+
+            if (response.status === "success") {
+              resolve(response);
+            } else {
+              reject(
+                new Error(response.message || "Gagal menghapus transaksi")
               );
             }
           };
@@ -1283,6 +1561,51 @@
           }
         });
 
+      // Submit form edit transaksi
+      document
+        .getElementById("editTransactionForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const transaction = {
+            id: document.getElementById("edit-id").value,
+            kategori: document.getElementById("edit-kategori").value,
+            deskripsi: document.getElementById("edit-deskripsi").value,
+            jumlah: document.getElementById("edit-jumlah").value,
+            tipe: document.getElementById("edit-tipe").value,
+          };
+
+          // Tampilkan loading
+          const submitBtn = document.querySelector(
+            '#editTransactionForm button[type="submit"]'
+          );
+          const originalBtnText = submitBtn.innerHTML;
+          submitBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+          submitBtn.disabled = true;
+
+          try {
+            // Kirim transaksi
+            await updateTransaction(transaction);
+
+            // Tampilkan notifikasi sukses
+            showNotification("Transaksi berhasil diperbarui!", "success");
+
+            // Muat ulang data transaksi
+            await loadTransactions();
+
+            // Tutup modal
+            document.getElementById("editModal").style.display = "none";
+          } catch (error) {
+            console.error("Error:", error);
+            showNotification(`Gagal memperbarui: ${error.message}`, "error");
+          } finally {
+            // Kembalikan tombol ke keadaan semula
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+          }
+        });
+
       // Fungsi untuk menampilkan tab
       function showTab(tabName) {
         // Sembunyikan semua tab
@@ -1308,6 +1631,23 @@
         }
       }
 
+      // Fungsi untuk menampilkan modal edit
+      function openEditModal(id, tipe, kategori, deskripsi, jumlah) {
+        document.getElementById("edit-id").value = id;
+        document.getElementById("edit-tipe").value = tipe;
+        // Update opsi kategori berdasarkan tipe
+        updateEditCategoryOptions();
+        // Set nilai kategori setelah opsi diperbarui
+        setTimeout(() => {
+          document.getElementById("edit-kategori").value = kategori;
+        }, 50);
+        document.getElementById("edit-deskripsi").value = deskripsi;
+        document.getElementById("edit-jumlah").value = jumlah;
+
+        // Tampilkan modal
+        document.getElementById("editModal").style.display = "block";
+      }
+
       // Event listener untuk tab
       document.querySelectorAll(".tab").forEach((tab) => {
         tab.addEventListener("click", () => {
@@ -1321,14 +1661,74 @@
         .getElementById("tipe")
         .addEventListener("change", updateCategoryOptions);
 
+      // Event listener untuk perubahan tipe pada form edit
+      document
+        .getElementById("edit-tipe")
+        .addEventListener("change", updateEditCategoryOptions);
+
+      // Event listener untuk tombol edit
+      document.addEventListener("click", function (e) {
+        // Tombol edit
+        if (e.target.closest(".btn-edit")) {
+          const btn = e.target.closest(".btn-edit");
+          const id = btn.dataset.id;
+          const tipe = btn.dataset.tipe;
+          const kategori = btn.dataset.kategori;
+          const deskripsi = btn.dataset.deskripsi;
+          const jumlah = btn.dataset.jumlah;
+
+          openEditModal(id, tipe, kategori, deskripsi, jumlah);
+        }
+
+        // Tombol hapus
+        if (e.target.closest(".btn-delete")) {
+          const btn = e.target.closest(".btn-delete");
+          const id = btn.dataset.id;
+
+          if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+            // Tampilkan loading
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            deleteTransaction(id)
+              .then(() => {
+                showNotification("Transaksi berhasil dihapus!", "success");
+                loadTransactions();
+              })
+              .catch((error) => {
+                showNotification(`Gagal menghapus: ${error.message}`, "error");
+              })
+              .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+              });
+          }
+        }
+
+        // Tombol close modal
+        if (e.target.classList.contains("close")) {
+          document.getElementById("editModal").style.display = "none";
+        }
+      });
+
+      // Tutup modal jika mengklik di luar konten modal
+      window.addEventListener("click", function (event) {
+        const modal = document.getElementById("editModal");
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+      });
+
       // Muat transaksi saat halaman dimuat
       document.addEventListener("DOMContentLoaded", () => {
         // Inisialisasi opsi kategori
         updateCategoryOptions();
+        updateEditCategoryOptions();
 
         // Muat data transaksi
         loadTransactions();
       });
     </script>
-</body>
+  </body>
 </html>
