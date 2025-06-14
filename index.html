@@ -466,6 +466,18 @@
             margin: 20px 0;
             border-radius: 4px;
         }
+        
+        .debug-panel {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -476,7 +488,7 @@
         </header>
 
         <div class="cors-warning">
-            <h3><i class="fas fa-exclamation-triangle"></i> Perhatian: Masalah CORS</h3>
+            <h3><i class="fas fa-exclamation-triangle"></i> Perhatian: Masalah Akses</h3>
             <p>Aplikasi ini memerlukan akses ke Google Apps Script. Jika Anda mengalami masalah:</p>
             <ol>
                 <li>Buka <a href="#" id="scriptLink">link Apps Script</a> di tab baru</li>
@@ -484,6 +496,7 @@
                 <li>Klik "Allow" untuk memberikan izin akses</li>
                 <li>Refresh halaman ini</li>
             </ol>
+            <p>Atau gunakan ekstensi CORS seperti <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" target="_blank">Allow CORS</a> untuk pengembangan.</p>
         </div>
 
         <div class="dashboard">
@@ -604,6 +617,11 @@
             </div>
         </div>
 
+        <div class="debug-panel">
+            <h3><i class="fas fa-bug"></i> Debug Information</h3>
+            <div id="debugOutput">Menunggu data debug...</div>
+        </div>
+
         <footer>
             <p>© 2023 Financial Tracker App | Sistem Manajemen Keuangan Organisasi</p>
             <p>URL Apps Script: <span id="scriptUrlDisplay"></span></p>
@@ -611,7 +629,7 @@
     </div>
 
     <script>
-        // Konfigurasi aplikasi - PASTIKAN UNTUK MENGUBAH INI
+        // Konfigurasi aplikasi
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQFrcI4bV5e9fns7MHsX6HEbZ3I4A-2-Wwl2XzeDNngWxyQ2WuEHEf_7t4BMQVX5A/exec";
         
         // Tampilkan URL Apps Script
@@ -766,6 +784,14 @@
             }, 3000);
         }
 
+        // Fungsi untuk menampilkan debug info
+        function showDebugInfo(message) {
+            const debugOutput = document.getElementById('debugOutput');
+            const debugEntry = document.createElement('div');
+            debugEntry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugOutput.prepend(debugEntry);
+        }
+
         // Fungsi untuk menghitung dan menampilkan ringkasan keuangan
         function updateFinancialSummary(transactions) {
             let totalIncome = 0;
@@ -869,9 +895,11 @@
             });
         }
         
-        // Fungsi untuk memuat transaksi dengan CORS proxy
+        // Fungsi untuk memuat transaksi tanpa proxy
         async function loadTransactions() {
             try {
+                showDebugInfo("Memulai pemuatan transaksi...");
+                
                 const tableBody = document.getElementById('transactionTableBody');
                 tableBody.innerHTML = `
                     <tr>
@@ -884,32 +912,44 @@
                 
                 // Tambahkan timestamp untuk menghindari cache
                 const timestamp = new Date().getTime();
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(SCRIPT_URL + '?cache=' + timestamp)}`;
+                const url = `${SCRIPT_URL}?cache=${timestamp}`;
+                showDebugInfo(`Mengambil data dari: ${url}`);
                 
-                const response = await fetch(proxyUrl);
+                const response = await fetch(url);
+                showDebugInfo(`Status respons: ${response.status}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 
+                // Periksa tipe konten sebelum parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    showDebugInfo(`Respons bukan JSON: ${text.substring(0, 100)}...`);
+                    throw new Error('Respons server bukan JSON yang valid');
+                }
+                
                 const data = await response.json();
-                const contents = JSON.parse(data.contents);
+                showDebugInfo(`Berhasil menerima ${data.length} transaksi`);
                 
                 // Periksa jika respons kosong
-                if (!contents || contents.length === 0) {
+                if (!data || data.length === 0) {
+                    showDebugInfo("Tidak ada data transaksi yang diterima");
                     throw new Error('Tidak ada data yang diterima');
                 }
                 
                 // Update ringkasan keuangan
-                updateFinancialSummary(contents);
+                updateFinancialSummary(data);
                 
                 // Update chart pengeluaran
-                updateExpenseChart(contents);
+                updateExpenseChart(data);
                 
                 // Tampilkan transaksi
-                displayTransactions(contents);
+                displayTransactions(data);
             } catch (error) {
                 console.error('Error loading data:', error);
+                showDebugInfo(`Error: ${error.message}`);
                 showNotification(`Gagal memuat data: ${error.message}`, 'error');
                 
                 document.getElementById('transactionTableBody').innerHTML = `
@@ -924,7 +964,7 @@
             }
         }
         
-        // Submit form transaksi dengan CORS proxy
+        // Submit form transaksi tanpa proxy
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -935,6 +975,8 @@
                 tipe: document.getElementById('tipe').value
             };
             
+            showDebugInfo("Mengirim transaksi: " + JSON.stringify(transaction));
+            
             // Tampilkan loading
             const submitBtn = document.querySelector('#transactionForm button[type="submit"]');
             const originalBtnText = submitBtn.innerHTML;
@@ -942,33 +984,35 @@
             submitBtn.disabled = true;
             
             try {
-                // Gunakan CORS proxy untuk POST
-                const proxyUrl = `https://api.allorigins.win/post?url=${encodeURIComponent(SCRIPT_URL)}`;
-                
-                const response = await fetch(proxyUrl, {
+                const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(transaction)
-                    })
+                    body: JSON.stringify(transaction)
                 });
+                
+                showDebugInfo(`Status respons POST: ${response.status}`);
                 
                 // Tambahkan pengecekan status response
                 if (!response.ok) {
                     const errorText = await response.text();
+                    showDebugInfo(`Error respons: ${errorText}`);
                     throw new Error(`HTTP error! Status: ${response.status}, Response: ${errorText}`);
                 }
                 
-                const result = await response.json();
-                const contents = JSON.parse(result.contents);
+                // Periksa tipe konten
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    showDebugInfo(`Respons POST bukan JSON: ${text.substring(0, 100)}...`);
+                    throw new Error('Respons server bukan JSON yang valid');
+                }
                 
-                if (contents.status === "success") {
+                const result = await response.json();
+                showDebugInfo(`Respons POST: ${JSON.stringify(result)}`);
+                
+                if (result.status === "success") {
                     // Reset form
                     document.getElementById('transactionForm').reset();
                     
@@ -981,10 +1025,11 @@
                     // Kembali ke dashboard
                     showTab('dashboard');
                 } else {
-                    throw new Error(contents.message || 'Gagal menyimpan transaksi');
+                    throw new Error(result.message || 'Gagal menyimpan transaksi');
                 }
             } catch (error) {
                 console.error('Error:', error);
+                showDebugInfo(`Error: ${error.message}`);
                 showNotification(`Gagal menyimpan transaksi: ${error.message}`, 'error');
             } finally {
                 // Kembalikan tombol ke keadaan semula
