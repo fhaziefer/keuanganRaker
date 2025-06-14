@@ -895,7 +895,94 @@
             });
         }
         
-        // Fungsi untuk memuat transaksi tanpa proxy
+        // Solusi 1: Menggunakan JSONP untuk permintaan GET
+        function loadTransactionsWithJSONP() {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+                const timestamp = new Date().getTime();
+                const url = `${SCRIPT_URL}?cache=${timestamp}&callback=${callbackName}`;
+                
+                showDebugInfo(`Menggunakan JSONP untuk: ${url}`);
+                
+                // Buat elemen script
+                const script = document.createElement('script');
+                script.src = url;
+                script.async = true;
+                
+                // Tentukan fungsi callback
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(data);
+                };
+                
+                // Tangani error
+                script.onerror = () => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP request failed'));
+                };
+                
+                // Tambahkan script ke dokumen
+                document.body.appendChild(script);
+            });
+        }
+        
+        // Solusi 2: Menggunakan server proxy pribadi untuk POST
+        async function postWithProxy(data) {
+            // Server proxy pribadi (Anda perlu membuatnya sendiri)
+            const PROXY_URL = "https://your-proxy-server.com/proxy";
+            
+            try {
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: SCRIPT_URL,
+                        data: data
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // Solusi 3: Menggunakan Google Apps Script sebagai proxy
+        async function postWithGASProxy(data) {
+            // Ganti dengan URL Google Apps Script proxy Anda
+            const PROXY_URL = "https://script.google.com/macros/s/your-proxy-script/exec";
+            
+            try {
+                const response = await fetch(PROXY_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        target: SCRIPT_URL,
+                        data: data
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                throw error;
+            }
+        }
+        
+        // Fungsi untuk memuat transaksi
         async function loadTransactions() {
             try {
                 showDebugInfo("Memulai pemuatan transaksi...");
@@ -910,34 +997,9 @@
                     </tr>
                 `;
                 
-                // Tambahkan timestamp untuk menghindari cache
-                const timestamp = new Date().getTime();
-                const url = `${SCRIPT_URL}?cache=${timestamp}`;
-                showDebugInfo(`Mengambil data dari: ${url}`);
-                
-                const response = await fetch(url);
-                showDebugInfo(`Status respons: ${response.status}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                // Periksa tipe konten sebelum parsing
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    showDebugInfo(`Respons bukan JSON: ${text.substring(0, 100)}...`);
-                    throw new Error('Respons server bukan JSON yang valid');
-                }
-                
-                const data = await response.json();
+                // Gunakan JSONP untuk GET
+                const data = await loadTransactionsWithJSONP();
                 showDebugInfo(`Berhasil menerima ${data.length} transaksi`);
-                
-                // Periksa jika respons kosong
-                if (!data || data.length === 0) {
-                    showDebugInfo("Tidak ada data transaksi yang diterima");
-                    throw new Error('Tidak ada data yang diterima');
-                }
                 
                 // Update ringkasan keuangan
                 updateFinancialSummary(data);
@@ -964,7 +1026,7 @@
             }
         }
         
-        // Submit form transaksi tanpa proxy
+        // Submit form transaksi
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -984,32 +1046,8 @@
             submitBtn.disabled = true;
             
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(transaction)
-                });
-                
-                showDebugInfo(`Status respons POST: ${response.status}`);
-                
-                // Tambahkan pengecekan status response
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    showDebugInfo(`Error respons: ${errorText}`);
-                    throw new Error(`HTTP error! Status: ${response.status}, Response: ${errorText}`);
-                }
-                
-                // Periksa tipe konten
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    showDebugInfo(`Respons POST bukan JSON: ${text.substring(0, 100)}...`);
-                    throw new Error('Respons server bukan JSON yang valid');
-                }
-                
-                const result = await response.json();
+                // Gunakan proxy untuk POST
+                const result = await postWithGASProxy(transaction);
                 showDebugInfo(`Respons POST: ${JSON.stringify(result)}`);
                 
                 if (result.status === "success") {
