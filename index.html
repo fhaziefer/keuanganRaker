@@ -14,7 +14,6 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      /* Styles tetap sama seperti sebelumnya */
       :root {
         --primary: #4361ee;
         --secondary: #3f37c9;
@@ -444,21 +443,30 @@
         }
       }
 
-      /* Style untuk notifikasi error */
-      .error-notification {
+      .notification {
         position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 15px 30px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        z-index: 1000;
+        bottom: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 12px;
+        color: white;
         display: flex;
         align-items: center;
-        gap: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+      }
+
+      .notification.success {
+        background: #20c997;
+      }
+
+      .notification.error {
+        background: #f72585;
+      }
+
+      .notification i {
+        margin-right: 10px;
+        font-size: 1.2rem;
       }
     </style>
   </head>
@@ -769,29 +777,29 @@
         return new Date(dateString).toLocaleDateString("id-ID", options);
       }
 
-      // Fungsi untuk menampilkan notifikasi error
-      function showError(message) {
+      // Fungsi untuk menampilkan notifikasi
+      function showNotification(message, type) {
         // Hapus notifikasi sebelumnya jika ada
-        const existingNotification = document.querySelector(
-          ".error-notification"
-        );
+        const existingNotification = document.querySelector(".notification");
         if (existingNotification) {
           existingNotification.remove();
         }
 
         const notification = document.createElement("div");
-        notification.className = "error-notification";
+        notification.className = `notification ${type}`;
         notification.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
+                <i class="fas fa-${
+                  type === "success" ? "check" : "exclamation"
+                }-circle"></i>
                 <span>${message}</span>
             `;
 
         document.body.appendChild(notification);
 
-        // Hapus notifikasi setelah 5 detik
+        // Hapus notifikasi setelah 3 detik
         setTimeout(() => {
           notification.remove();
-        }, 5000);
+        }, 3000);
       }
 
       // Fungsi untuk menghitung dan menampilkan ringkasan keuangan
@@ -931,7 +939,7 @@
 
           // Tambahkan timestamp untuk menghindari cache
           const timestamp = new Date().getTime();
-          const response = await fetch(`${SCRIPT_URL}?t=${timestamp}`);
+          const response = await fetch(`${SCRIPT_URL}?cache=${timestamp}`);
 
           if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -954,17 +962,34 @@
           displayTransactions(data);
         } catch (error) {
           console.error("Error loading data:", error);
-          showError(`Gagal memuat data: ${error.message}`);
+          showNotification(`Gagal memuat data: ${error.message}`, "error");
 
           document.getElementById("transactionTableBody").innerHTML = `
                     <tr>
                         <td colspan="5" class="loading">
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>Gagal memuat data. Silakan coba lagi.</p>
-                            <p>${error.message}</p>
                         </td>
                     </tr>
                 `;
+        }
+      }
+
+      // Fungsi untuk mengatasi masalah CORS dengan proxy
+      async function corsProxy(url, options = {}) {
+        try {
+          // Gunakan proxy jika diperlukan
+          const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+          const response = await fetch(proxyUrl + url, options);
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+
+          return response;
+        } catch (error) {
+          console.error("Proxy error:", error);
+          throw error;
         }
       }
 
@@ -991,13 +1016,29 @@
           submitBtn.disabled = true;
 
           try {
-            const response = await fetch(SCRIPT_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(transaction),
-            });
+            // Coba kirim langsung
+            let response;
+            try {
+              response = await fetch(SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(transaction),
+              });
+            } catch (directError) {
+              console.log(
+                "Direct request failed, trying proxy...",
+                directError
+              );
+              response = await corsProxy(SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(transaction),
+              });
+            }
 
             // Tambahkan pengecekan status response
             if (!response.ok) {
@@ -1014,7 +1055,7 @@
               document.getElementById("transactionForm").reset();
 
               // Tampilkan notifikasi sukses
-              showError("Transaksi berhasil disimpan!");
+              showNotification("Transaksi berhasil disimpan!", "success");
 
               // Muat ulang data transaksi
               await loadTransactions();
@@ -1026,7 +1067,10 @@
             }
           } catch (error) {
             console.error("Error:", error);
-            showError(`Gagal menyimpan transaksi: ${error.message}`);
+            showNotification(
+              `Gagal menyimpan transaksi: ${error.message}`,
+              "error"
+            );
           } finally {
             // Kembalikan tombol ke keadaan semula
             submitBtn.innerHTML = originalBtnText;
