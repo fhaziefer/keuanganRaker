@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Financial Tracker | Manajemen Keuangan Organisasi</title>
+    <title>Keuangan Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -15,8 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       :root {
-        --primary: #4361ee;
-        --secondary: #3f37c9;
+        --primary: #14b814;
+        --secondary: #53ec53;
         --success: #4cc9f0;
         --danger: #f72585;
         --warning: #f8961e;
@@ -468,39 +468,16 @@
         margin-right: 10px;
         font-size: 1.2rem;
       }
-
-      .script-warning {
-        background: #d1ecf1;
-        border-left: 4px solid #0dcaf0;
-        padding: 15px;
-        margin: 20px 0;
-        border-radius: 8px;
-      }
     </style>
   </head>
   <body>
     <div class="container">
       <header>
         <h1>
-          <i class="fas fa-file-invoice-dollar"></i> Financial Tracker
-          Organisasi
+          Pencatatan Keuangan Panitia
         </h1>
-        <p>Sistem Manajemen Keuangan untuk Organisasi dan Komunitas</p>
+        <p>Rakerwil dan Pengukuhan PW MDS Rijalul Ansor jatim</p>
       </header>
-
-      <div class="script-warning">
-        <h3><i class="fas fa-info-circle"></i> Petunjuk Penggunaan</h3>
-        <p>
-          Pastikan Anda telah mengganti URL Apps Script di bawah dengan URL
-          deployment Anda sendiri.
-        </p>
-        <p>
-          URL saat ini:
-          <strong id="scriptUrlDisplay"
-            >https://script.google.com/macros/s/.../exec</strong
-          >
-        </p>
-      </div>
 
       <div class="dashboard">
         <div class="card income">
@@ -645,7 +622,7 @@
 
       <footer>
         <p>
-          © 2023 Financial Tracker App | Sistem Manajemen Keuangan Organisasi
+          © 2025 Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim.
         </p>
       </footer>
     </div>
@@ -655,9 +632,6 @@
       // GANTI URL INI DENGAN URL DEPLOYMENT APPS SCRIPT ANDA
       const SCRIPT_URL =
         "https://script.google.com/macros/s/AKfycbwQFrcI4bV5e9fns7MHsX6HEbZ3I4A-2-Wwl2XzeDNngWxyQ2WuEHEf_7t4BMQVX5A/exec";
-
-      // Tampilkan URL Apps Script
-      document.getElementById("scriptUrlDisplay").textContent = SCRIPT_URL;
 
       // Kategori khusus untuk organisasi
       const expenseCategories = [
