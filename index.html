@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Keuangan Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim</title>
@@ -197,6 +197,14 @@
         display: flex;
         align-items: center;
       }
+      
+      .sub-section-title {
+        font-size: 1.2rem;
+        margin: 25px 0 15px;
+        color: var(--primary);
+        border-bottom: 2px solid var(--light-gray);
+        padding-bottom: 8px;
+      }
 
       .section-title i {
         margin-right: 10px;
@@ -260,6 +268,7 @@
         border-radius: 16px;
         box-shadow: var(--card-shadow);
         background: white;
+        margin-bottom: 30px;
       }
 
       table {
@@ -468,13 +477,43 @@
         margin-right: 10px;
         font-size: 1.2rem;
       }
+      
+      .summary-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 20px;
+      }
+      
+      .summary-card .title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--gray);
+      }
+      
+      .summary-card .value {
+        font-weight: 700;
+        font-size: 1.4rem;
+      }
+      
+      .income-summary .value {
+        color: var(--success);
+      }
+      
+      .expense-summary .value {
+        color: var(--danger);
+      }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div class="container">
       <header>
         <h1>
-          Pencatatan Keuangan Panitia
+          <i class="fas fa-file-invoice-dollar"></i> Pencatatan Keuangan Panitia
         </h1>
         <p>Rakerwil dan Pengukuhan PW MDS Rijalul Ansor jatim</p>
       </header>
@@ -524,6 +563,7 @@
         <div class="tab active" data-tab="dashboard">Dashboard</div>
         <div class="tab" data-tab="input">Input Transaksi</div>
         <div class="tab" data-tab="history">Riwayat</div>
+        <div class="tab" data-tab="detail">Detail</div>
       </div>
 
       <div class="content" id="dashboardTab">
@@ -613,6 +653,70 @@
                 <td colspan="5" class="loading">
                   <i class="fas fa-spinner fa-spin"></i>
                   <p>Memuat data transaksi...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="transactions" id="detailTab" style="display: none">
+        <h2 class="section-title">
+          <i class="fas fa-file-alt"></i> Detail Pemasukan & Pengeluaran
+        </h2>
+        
+        <div class="summary-card income-summary">
+          <div class="title">Total Pemasukan</div>
+          <div class="value" id="detail-income-total">Rp 0</div>
+        </div>
+        
+        <div class="table-container">
+          <h3 class="sub-section-title">
+            <i class="fas fa-arrow-down"></i> Daftar Pemasukan
+          </h3>
+          <table id="incomeTable">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Kategori</th>
+                <th>Deskripsi</th>
+                <th>Jumlah</th>
+              </tr>
+            </thead>
+            <tbody id="incomeTableBody">
+              <tr>
+                <td colspan="4" class="loading">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Memuat data pemasukan...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="summary-card expense-summary">
+          <div class="title">Total Pengeluaran</div>
+          <div class="value" id="detail-expense-total">Rp 0</div>
+        </div>
+        
+        <div class="table-container">
+          <h3 class="sub-section-title">
+            <i class="fas fa-arrow-up"></i> Daftar Pengeluaran
+          </h3>
+          <table id="expenseTable">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Kategori</th>
+                <th>Deskripsi</th>
+                <th>Jumlah</th>
+              </tr>
+            </thead>
+            <tbody id="expenseTableBody">
+              <tr>
+                <td colspan="4" class="loading">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Memuat data pengeluaran...</p>
                 </td>
               </tr>
             </tbody>
@@ -824,6 +928,12 @@
         document.getElementById("total-balance").textContent = formatCurrency(
           totalIncome - totalExpense
         );
+        
+        // Update detail summary
+        document.getElementById("detail-income-total").textContent = 
+          formatCurrency(totalIncome);
+        document.getElementById("detail-expense-total").textContent = 
+          formatCurrency(totalExpense);
 
         // Update comparison chart
         comparisonChart.data.datasets[0].data = [totalIncome, totalExpense];
@@ -902,6 +1012,86 @@
 
         tableBody.innerHTML = tableHTML;
       }
+      
+      // Fungsi untuk menampilkan detail pemasukan dan pengeluaran
+      function displayIncomeExpenseDetails(transactions) {
+        // Filter transaksi
+        const incomeTransactions = transactions.filter(
+          t => t.Tipe === "Pemasukan"
+        );
+        
+        const expenseTransactions = transactions.filter(
+          t => t.Tipe === "Pengeluaran"
+        );
+        
+        // Tampilkan pemasukan
+        const incomeTableBody = document.getElementById("incomeTableBody");
+        
+        if (incomeTransactions.length === 0) {
+          incomeTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" class="loading">
+                <i class="fas fa-inbox"></i>
+                <p>Belum ada transaksi pemasukan</p>
+              </td>
+            </tr>
+          `;
+        } else {
+          let incomeHTML = "";
+          
+          incomeTransactions.sort(
+            (a, b) => new Date(b.Timestamp) - new Date(a.Timestamp)
+          ).forEach(transaction => {
+            const categoryClass = getCategoryClass(transaction.Kategori);
+            const amount = parseFloat(transaction.Jumlah);
+            
+            incomeHTML += `
+              <tr>
+                <td>${formatDate(transaction.Timestamp)}</td>
+                <td><span class="category-badge ${categoryClass}">${transaction.Kategori}</span></td>
+                <td>${transaction.Deskripsi}</td>
+                <td style="color: #4cc9f0; font-weight: 500;">${formatCurrency(amount)}</td>
+              </tr>
+            `;
+          });
+          
+          incomeTableBody.innerHTML = incomeHTML;
+        }
+        
+        // Tampilkan pengeluaran
+        const expenseTableBody = document.getElementById("expenseTableBody");
+        
+        if (expenseTransactions.length === 0) {
+          expenseTableBody.innerHTML = `
+            <tr>
+              <td colspan="4" class="loading">
+                <i class="fas fa-inbox"></i>
+                <p>Belum ada transaksi pengeluaran</p>
+              </td>
+            </tr>
+          `;
+        } else {
+          let expenseHTML = "";
+          
+          expenseTransactions.sort(
+            (a, b) => new Date(b.Timestamp) - new Date(a.Timestamp)
+          ).forEach(transaction => {
+            const categoryClass = getCategoryClass(transaction.Kategori);
+            const amount = parseFloat(transaction.Jumlah);
+            
+            expenseHTML += `
+              <tr>
+                <td>${formatDate(transaction.Timestamp)}</td>
+                <td><span class="category-badge ${categoryClass}">${transaction.Kategori}</span></td>
+                <td>${transaction.Deskripsi}</td>
+                <td style="color: #f72585; font-weight: 500;">${formatCurrency(amount)}</td>
+              </tr>
+            `;
+          });
+          
+          expenseTableBody.innerHTML = expenseHTML;
+        }
+      }
 
       // Fungsi untuk mengupdate kategori berdasarkan tipe transaksi
       function updateCategoryOptions() {
@@ -951,6 +1141,9 @@
 
             // Tampilkan transaksi
             displayTransactions(data);
+            
+            // Tampilkan detail pemasukan dan pengeluaran
+            displayIncomeExpenseDetails(data);
 
             resolve(data);
           };
@@ -963,6 +1156,24 @@
             document.getElementById("transactionTableBody").innerHTML = `
                         <tr>
                             <td colspan="5" class="loading">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Gagal memuat data. Silakan coba lagi.</p>
+                            </td>
+                        </tr>
+                    `;
+                    
+            document.getElementById("incomeTableBody").innerHTML = `
+                        <tr>
+                            <td colspan="4" class="loading">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>Gagal memuat data. Silakan coba lagi.</p>
+                            </td>
+                        </tr>
+                    `;
+                    
+            document.getElementById("expenseTableBody").innerHTML = `
+                        <tr>
+                            <td colspan="4" class="loading">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <p>Gagal memuat data. Silakan coba lagi.</p>
                             </td>
@@ -1078,6 +1289,7 @@
         document.getElementById("dashboardTab").style.display = "none";
         document.getElementById("inputTab").style.display = "none";
         document.getElementById("historyTab").style.display = "none";
+        document.getElementById("detailTab").style.display = "none";
 
         // Tampilkan tab yang dipilih
         document.getElementById(`${tabName}Tab`).style.display = "grid";
@@ -1090,8 +1302,8 @@
           .querySelector(`.tab[data-tab="${tabName}"]`)
           .classList.add("active");
 
-        // Jika tab riwayat ditampilkan, muat ulang data
-        if (tabName === "history") {
+        // Jika tab riwayat atau detail ditampilkan, muat ulang data
+        if (tabName === "history" || tabName === "detail") {
           loadTransactions();
         }
       }
@@ -1118,5 +1330,5 @@
         loadTransactions();
       });
     </script>
-  </body>
+</body>
 </html>
