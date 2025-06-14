@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" href="favico.ico" type="image/png">
+    <link rel="icon" href="favico.ico" type="image/png" />
     <title>
       Keuangan Panitia Rakerwil dan Pengukuhan PW MDS Rijalul Ansor Jatim
     </title>
@@ -46,9 +46,17 @@
         padding: 20px;
       }
 
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
+      .chart-container {
+        position: relative;
+        height: 600px; /* Tetap kita perlukan tinggi minimal */
+        padding-bottom: 20px;
+      }
+
+      /* TAMBAHKAN CLASS BARU UNTUK WRAPPER CHART */
+      .chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: calc(100% - 70px); /* Beri ruang untuk judul */
       }
 
       header {
@@ -175,7 +183,9 @@
       }
 
       .chart-container {
+        position: relative;
         height: 300px;
+        padding-bottom: 30px;
       }
 
       .form-container {
@@ -566,9 +576,7 @@
   <body>
     <div class="container">
       <header>
-        <h1>
-          Pencatatan Keuangan Panitia
-        </h1>
+        <h1>Pencatatan Keuangan Panitia</h1>
         <p>Rakerwil dan Pengukuhan PW MDS Rijalul Ansor jatim</p>
       </header>
 
@@ -581,7 +589,7 @@
             <div>
               <div class="card-title">Total Pemasukan</div>
               <div class="card-value" id="total-income">Rp 0</div>
-              <div class="card-footer">Bulan ini</div>
+              <!-- <div class="card-footer">Bulan ini</div> -->
             </div>
           </div>
         </div>
@@ -594,7 +602,6 @@
             <div>
               <div class="card-title">Total Pengeluaran</div>
               <div class="card-value" id="total-expense">Rp 0</div>
-              <div class="card-footer">Bulan ini</div>
             </div>
           </div>
         </div>
@@ -605,9 +612,8 @@
               <i class="fas fa-balance-scale"></i>
             </div>
             <div>
-              <div class="card-title">Saldo Kepanitian</div>
+              <div class="card-title">Total Saldo</div>
               <div class="card-value" id="total-balance">Rp 0</div>
-              <div class="card-footer">Saldo saat ini</div>
             </div>
           </div>
         </div>
@@ -625,14 +631,20 @@
           <h2 class="section-title">
             <i class="fas fa-chart-pie"></i> Distribusi Pengeluaran
           </h2>
-          <canvas id="expenseChart"></canvas>
+          <div class="chart-wrapper">
+            <!-- TAMBAHKAN WRAPPER INI -->
+            <canvas id="expenseChart"></canvas>
+          </div>
         </div>
 
         <div class="chart-container card">
           <h2 class="section-title">
             <i class="fas fa-chart-bar"></i> Pemasukan vs Pengeluaran
           </h2>
-          <canvas id="comparisonChart"></canvas>
+          <div class="chart-wrapper">
+            <!-- TAMBAHKAN WRAPPER INI -->
+            <canvas id="comparisonChart"></canvas>
+          </div>
         </div>
       </div>
 
@@ -896,10 +908,10 @@
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: "right",
+              position: "bottom",
               labels: {
-                boxWidth: 15,
-                padding: 20,
+                boxWidth: 5,
+                padding: 10,
               },
             },
             tooltip: {
@@ -910,7 +922,7 @@
               },
             },
           },
-          cutout: "65%",
+          cutout: "75%",
         },
       });
 
@@ -920,12 +932,12 @@
       const comparisonChart = new Chart(comparisonCtx, {
         type: "bar",
         data: {
-          labels: ["Pemasukan", "Pengeluaran"],
+          labels: ["Pemasukan", "Pengeluaran", "Saldo"],
           datasets: [
             {
               label: "Jumlah (Rp)",
-              data: [0, 0],
-              backgroundColor: ["#4cc9f0", "#f72585"],
+              data: [0, 0, 0],
+              backgroundColor: ["#4cc9f0", "#f72585", "#4361ee"],
               borderWidth: 0,
               borderRadius: 8,
             },
@@ -1022,6 +1034,7 @@
       function updateFinancialSummary(transactions) {
         let totalIncome = 0;
         let totalExpense = 0;
+        let totalBalance = 0;
 
         transactions.forEach((transaction) => {
           const amount = parseFloat(transaction.Jumlah);
@@ -1030,6 +1043,7 @@
           } else {
             totalExpense += amount;
           }
+          totalBalance = totalIncome - totalExpense;
         });
 
         document.getElementById("total-income").textContent =
@@ -1047,7 +1061,11 @@
           formatCurrency(totalExpense);
 
         // Update comparison chart
-        comparisonChart.data.datasets[0].data = [totalIncome, totalExpense];
+        comparisonChart.data.datasets[0].data = [
+          totalIncome,
+          totalExpense,
+          totalBalance,
+        ];
         comparisonChart.update();
       }
 
